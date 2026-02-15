@@ -1,0 +1,42 @@
+# Push 2 Reaper Controller - Default Configuration
+
+# OSC connection to Reaper
+osc:
+  reaper_ip: "127.0.0.1"
+  reaper_port: 8000
+  listen_port: 9000
+
+# Push 2 device settings
+push2:
+  device_name: "Ableton Push 2"
+  fps: 30
+  use_user_midi_port: false
+
+# Workflow modes
+modes:
+  default: "mixer"  # mixer, session, device, browse
+
+# Button-to-action mappings
+buttons:
+  play: "transport_play"
+  stop: "transport_stop"
+  record: "transport_record"
+  mute: "track_mute"
+  solo: "track_solo"
+  master: "master_select"
+  up: "bank_up"
+  down: "bank_down"
+  left: "track_left"
+  right: "track_right"
+
+# Encoder assignments (default: mixer mode)
+encoders:
+  mode: "volume"  # volume, pan, send
+  sensitivity: 1.0
+
+# Display settings
+display:
+  background_color: [0, 0, 0]
+  text_color: [255, 255, 255]
+  accent_color: [255, 120, 0]
+  font_size: 14
