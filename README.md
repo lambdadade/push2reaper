@@ -1,5 +1,7 @@
 # Push 2 Reaper Controller
 
+> **Beta Software** — This project is in early beta. Core features (mixer, transport, scales, drum pads) are functional, but some modes (session/clip launching, browser, device control) are incomplete or require additional setup. Expect bugs, missing features, and breaking changes.
+
 A Linux daemon that turns the Ableton Push 2 into a fully functional hardware controller for [Reaper DAW](https://www.reaper.fm/) via OSC (Open Sound Control).
 
 Provides mixer control, musical note input with configurable scales, drum pads, FX/device parameter editing, clip launching (via Playtime), and a real-time 960x160 display — all running natively on Linux.
