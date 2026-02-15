@@ -317,7 +317,12 @@ class Push2ReaperDaemon:
         self._mode.on_pad_released(self, row, col)
 
     def _on_pad_aftertouch(self, data: dict) -> None:
-        row, col = data["pad_ij"]
+        pad_ij = data.get("pad_ij")
+        if pad_ij is None:
+            # Channel aftertouch (no specific pad) — forward as channel pressure
+            self.osc_client.channel_pressure(0, data["value"])
+            return
+        row, col = pad_ij
         self._mode.on_aftertouch(self, row, col, data["value"])
 
     def _on_touchstrip(self, data: dict) -> None:

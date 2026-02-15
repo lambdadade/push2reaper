@@ -109,6 +109,11 @@ In Reaper:
 4. Select the appropriate **pattern config** file or use the default
 5. Click **OK**
 
+Then enable the virtual MIDI keyboard (required for pad note input):
+1. Go to **View > Virtual MIDI Keyboard** (or press **Alt+B**)
+2. The virtual keyboard must be **active** for pad notes, aftertouch, and pitch bend to reach armed tracks
+3. Do **not** configure a hardware MIDI device for the Push 2 in Reaper — all MIDI goes through OSC's virtual keyboard to avoid double notes
+
 ### 4. Run the daemon
 
 ```bash
@@ -239,6 +244,11 @@ Push 2 (USB)          push2reaper daemon              Reaper DAW
 - Verify Reaper OSC is configured (Preferences > Control/OSC/Web)
 - Check ports match: daemon listens on 9000, sends to 8000
 - Check Reaper's OSC log: Preferences > Control/OSC/Web > Log
+
+### Pads don't produce sound
+- **Virtual MIDI keyboard must be active**: View > Virtual MIDI Keyboard (Alt+B)
+- Make sure the target track is **selected and record-armed** (use lower row buttons in mixer mode)
+- Do **not** add Push 2 as a MIDI device in Reaper — this causes double notes
 
 ### Display shows but controls don't work
 - Ensure Reaper is the active/focused DAW
