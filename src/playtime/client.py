@@ -71,6 +71,8 @@ class PlaytimeClient:
         self.slot_states: dict[tuple[int, int], int] = {}
         # slot_has_content[col][row] = True if slot has clips
         self.slot_has_content: dict[tuple[int, int], bool] = {}
+        # slot_clip_names[(col, row)] = clip name (first clip's name)
+        self.slot_clip_names: dict[tuple[int, int], str] = {}
         # Matrix dimensions discovered from server
         self.num_columns = 0
         self.num_rows = 0
@@ -228,6 +230,22 @@ class PlaytimeClient:
     def get_slot_state(self, col: int, row: int) -> int:
         """Get current state for a slot. Returns SLOT_EMPTY if unknown."""
         return self.slot_states.get((col, row), SLOT_EMPTY)
+
+    def get_grid_names(self, num_cols: int = 8, num_rows: int = 8,
+                       col_offset: int = 0, row_offset: int = 0) -> list[list[str]]:
+        """Get an 8x8 grid of clip names for the display.
+
+        Returns grid[row][col] matching the state grid layout.
+        """
+        grid = []
+        for row in range(num_rows):
+            row_names = []
+            for col in range(num_cols):
+                ac = col + col_offset
+                ar = row + row_offset
+                row_names.append(self.slot_clip_names.get((ac, ar), ""))
+            grid.append(row_names)
+        return grid
 
     def get_grid_state(self, num_cols: int = 8, num_rows: int = 8,
                        col_offset: int = 0, row_offset: int = 0) -> list[list[int]]:
@@ -395,9 +413,10 @@ class PlaytimeClient:
         rows = data.get("rows", [])
         self.num_rows = len(rows)
 
-        # Clear and rebuild content map + column names
+        # Clear and rebuild content map + column names + clip names
         with self._lock:
             self.slot_has_content.clear()
+            self.slot_clip_names.clear()
             self.column_names.clear()
             for col_idx, col_data in enumerate(columns):
                 # Map column to its track name
@@ -413,6 +432,8 @@ class PlaytimeClient:
                     clips = slot_data.get("clips", [])
                     has_content = len(clips) > 0
                     self.slot_has_content[(col_idx, row_idx)] = has_content
+                    if clips:
+                        self.slot_clip_names[(col_idx, row_idx)] = clips[0].get("name", "")
 
         log.info("Matrix: %d columns, %d rows, %d slots with content",
                  self.num_columns, self.num_rows,
@@ -428,5 +449,9 @@ class PlaytimeClient:
             data = json.loads(data_str)
             clips = data.get("clips", [])
             self.slot_has_content[(col, row)] = len(clips) > 0
+            if clips:
+                self.slot_clip_names[(col, row)] = clips[0].get("name", "")
+            else:
+                self.slot_clip_names.pop((col, row), None)
         except json.JSONDecodeError:
             pass

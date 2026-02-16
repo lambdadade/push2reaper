@@ -150,6 +150,10 @@ class SessionMode(Mode):
             num_cols=8, num_rows=8,
             col_offset=0, row_offset=self._scene_offset,
         )
+        clip_names = pt.get_grid_names(
+            num_cols=8, num_rows=8,
+            col_offset=0, row_offset=self._scene_offset,
+        )
 
         # Get column names from Playtime
         track_names = []
@@ -163,6 +167,7 @@ class SessionMode(Mode):
 
         return self._screen.render(
             track_names, self._scene_offset, clip_states,
+            clip_names=clip_names,
             connected=pt.is_connected,
             num_columns=pt.num_columns,
             num_rows=pt.num_rows,

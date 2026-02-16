@@ -37,6 +37,19 @@ class SessionScreen:
         self._font_tiny: ImageFont.FreeTypeFont | None = None
         self._load_fonts()
 
+    @staticmethod
+    def _truncate(draw: ImageDraw.ImageDraw, text: str, font, max_width: int) -> str:
+        """Truncate text to fit within max_width pixels, adding ellipsis if needed."""
+        bbox = draw.textbbox((0, 0), text, font=font)
+        if bbox[2] - bbox[0] <= max_width:
+            return text
+        for i in range(len(text), 0, -1):
+            truncated = text[:i] + ".."
+            bbox = draw.textbbox((0, 0), truncated, font=font)
+            if bbox[2] - bbox[0] <= max_width:
+                return truncated
+        return ""
+
     def _load_fonts(self) -> None:
         try:
             self._font = ImageFont.truetype(
@@ -55,6 +68,7 @@ class SessionScreen:
 
     def render(self, track_names: list[str], scene_offset: int,
                clip_states: list[list[int]] | None = None,
+               clip_names: list[list[str]] | None = None,
                connected: bool = False,
                num_columns: int = 0,
                num_rows: int = 0) -> Image.Image:
@@ -95,17 +109,36 @@ class SessionScreen:
                 draw.rectangle([x, y, x + cell_w, y + row_h - 2],
                                fill=fill, outline=outline)
 
-                # Playing indicator: draw a small triangle
+                # Clip name text
+                clip_name = ""
+                if clip_names and row < len(clip_names) and col < len(clip_names[row]):
+                    clip_name = clip_names[row][col]
+                if clip_name and state > 0:
+                    # Truncate to fit cell width (leave room for state icon)
+                    max_w = cell_w - 4
+                    if state in (2, 3):
+                        max_w -= 10  # room for play/rec icon
+                    display_name = self._truncate(draw, clip_name, self._font_tiny, max_w)
+                    text_x = x + 2
+                    if state in (2, 3):
+                        text_x += 10  # after icon
+                    text_color = (255, 255, 255) if state >= 2 else (200, 200, 200)
+                    draw.text(
+                        (text_x, y + row_h // 2), display_name,
+                        fill=text_color, font=self._font_tiny, anchor="lm",
+                    )
+
+                # Playing indicator: small triangle (left side)
                 if state == 2:  # playing
-                    cx = x + cell_w // 2
+                    ix = x + 3
                     cy = y + row_h // 2 - 1
-                    draw.polygon([(cx - 3, cy - 3), (cx - 3, cy + 3), (cx + 3, cy)],
+                    draw.polygon([(ix, cy - 3), (ix, cy + 3), (ix + 5, cy)],
                                  fill=(255, 255, 255))
-                # Recording indicator: small circle
+                # Recording indicator: small circle (left side)
                 elif state == 3:
-                    cx = x + cell_w // 2
+                    ix = x + 3
                     cy = y + row_h // 2 - 1
-                    draw.ellipse([cx - 3, cy - 3, cx + 3, cy + 3],
+                    draw.ellipse([ix, cy - 3, ix + 6, cy + 3],
                                  fill=(255, 255, 255))
 
             # Scene number on right edge
