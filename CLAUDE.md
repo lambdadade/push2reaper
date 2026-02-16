@@ -21,6 +21,11 @@ Display ← Mode.render() ← PIL Image (960x160)                    OSC Client 
                                                                    OSC Server ← Reaper
                                                                        ↓
                                                                   ReaperState (cached)
+
+                                                         PlaytimeClient → gRPC → Playtime
+                                                              ↑ streaming ← gRPC ← Playtime
+                                                              ↓
+                                                         EventBus ("playtime_state_changed")
 ```
 
 ### Key Design Patterns
@@ -42,6 +47,14 @@ Display ← Mode.render() ← PIL Image (960x160)                    OSC Client 
 5. **Pad color dedup**: `PadManager.set_color()` skips MIDI sends if the color hasn't changed. Modes that write pad colors directly (drum, session) must call `pads.invalidate_cache()` in their `exit()` method so the next mode's colors repaint correctly.
 
 6. **OSC nudge pattern**: Encoder movements use `nudge_*()` methods that take `(current_value, increment)` and return the new clamped value. The caller updates both the OSC client and local state.
+
+7. **Playtime gRPC integration** (`playtime/client.py`): `PlaytimeClient` connects to Helgobox's gRPC server (port 39051, service `generated.HelgoboxService`). Two daemon threads stream real-time updates:
+   - `_stream_slot_updates` — receives `SlotPlayState` changes and `complete_persistent_data` (JSON with clip info including names)
+   - `_stream_matrix_updates` — receives matrix-level state (track list, tempo, persistent data with full clip matrix structure)
+   - State is stored in dicts keyed by `(col, row)` tuples: `slot_states`, `slot_has_content`, `slot_clip_names`
+   - Changes publish `playtime_state_changed` events on the EventBus; session mode subscribes to update pad colors in real-time
+   - The proto schema (`playtime/proto/helgobox.proto`) was reverse-engineered from the Helgobox Rust source — the `complete_persistent_data` fields are JSON strings, not protobuf messages
+   - Processing order matters: `track_list` must be processed before `complete_persistent_data` so track ID → name mapping is available for column name resolution
 
 ### Module Map
 
@@ -66,8 +79,10 @@ Display ← Mode.render() ← PIL Image (960x160)                    OSC Client 
 | `modes/scale.py` | Scale/root/layout selection overlay |
 | `modes/drum.py` | Drum pads (4x4) + step sequencer grid |
 | `modes/device.py` | FX parameter control via encoders |
-| `modes/session.py` | Clip launcher for Playtime (via gRPC) |
-| `playtime/client.py` | `PlaytimeClient` — gRPC client for Playtime clip engine |
+| `modes/session.py` | Clip launcher for Playtime (via gRPC), real-time pad colors and clip names |
+| `playtime/client.py` | `PlaytimeClient` — gRPC client for Playtime clip engine (state, streaming, triggers) |
+| `playtime/helgobox_pb2.py` | Generated protobuf classes (from helgobox.proto) |
+| `playtime/helgobox_pb2_grpc.py` | Generated gRPC stubs (manually fixed import path) |
 | `playtime/proto/helgobox.proto` | Reconstructed protobuf schema for Helgobox gRPC API |
 | `modes/browser.py` | FX browser trigger via Reaper actions |
 | `modes/send.py` | Standalone send control (currently unused, sends integrated into mixer) |

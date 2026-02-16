@@ -38,10 +38,13 @@ Provides mixer control, musical note input with configurable scales, drum pads, 
 
 ### Session Mode (Playtime integration)
 - Press **Session** to enter clip launcher mode
-- **8x8 pad grid**: Trigger clip slots via MIDI (requires [Helgobox/Playtime](https://www.helgoboss.org/projects/helgobox/) + ReaLearn bridge)
-- **Upper row**: Scene bank navigation
-- **Lower row**: Stop clips per track
-- See [docs/playtime-setup.md](docs/playtime-setup.md) for integration setup
+- **8x8 pad grid**: Trigger clip slots directly via gRPC (requires [Helgobox/Playtime](https://www.helgoboss.org/projects/helgobox/))
+- **Real-time feedback**: Pad colors and display update live (green=playing, red=recording, yellow=queued)
+- **Clip names**: Displayed in each grid cell, auto-truncated to fit
+- **Upper row 1-2**: Scene bank navigation; **3-8**: Trigger scenes
+- **Lower row**: Stop all clips per track
+- **Encoders**: Track volume
+- See [docs/playtime-setup.md](docs/playtime-setup.md) for setup details
 
 ### Browser Mode
 - Press **Browse** to open Reaper's FX browser
@@ -190,13 +193,19 @@ push2reaper/
 │   │   ├── scales.py             # Musical scale definitions + pad note mapping
 │   │   ├── display.py            # PIL-to-BGR565 frame conversion
 │   │   └── colors.py             # Custom color palette registration
+│   ├── playtime/
+│   │   ├── client.py             # Playtime gRPC client (clip control + state streaming)
+│   │   ├── helgobox_pb2.py       # Generated protobuf classes
+│   │   ├── helgobox_pb2_grpc.py  # Generated gRPC stubs
+│   │   └── proto/
+│   │       └── helgobox.proto    # Reconstructed Helgobox protobuf schema
 │   ├── modes/
 │   │   ├── base.py               # Mode base class (lifecycle + event interface)
 │   │   ├── mixer.py              # Mixer mode (volume/pan/send/mute/solo)
 │   │   ├── scale.py              # Scale selection overlay
 │   │   ├── drum.py               # Drum pads + step sequencer
 │   │   ├── device.py             # FX parameter control
-│   │   ├── session.py            # Clip launcher (Playtime)
+│   │   ├── session.py            # Clip launcher (Playtime gRPC)
 │   │   ├── browser.py            # FX browser
 │   │   └── send.py               # Standalone send control
 │   └── ui/
@@ -223,7 +232,10 @@ Push 2 (USB)          push2reaper daemon              Reaper DAW
 │ Display  │<───────────│ (mixer/drum/...) │<──────── │ Feedback │
 │ LEDs     │<───────────│ UI Renderer      │<──────── │ State    │
 └──────────┘            └──────────────────┘          └──────────┘
-                            30 fps display
+                            30 fps display  │  gRPC   ┌──────────┐
+                                            │────────>│ Playtime │
+                                            │<────────│ (clips)  │
+                                                      └──────────┘
 ```
 
 1. **Push 2 hardware** sends MIDI events (pad presses, encoder turns, button presses)
