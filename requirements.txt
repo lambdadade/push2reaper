@@ -5,3 +5,5 @@ Pillow>=10.0.0
 PyYAML>=6.0
 python-dotenv>=1.0.0
 numpy
+grpcio>=1.60.0
+protobuf>=5.0.0

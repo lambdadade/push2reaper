@@ -1,0 +1,281 @@
+// Reconstructed Helgobox gRPC proto for Playtime integration.
+// Based on analysis of helgoboss/helgobox generated.rs.
+// Only includes the subset needed for Push 2 session mode control.
+
+syntax = "proto3";
+
+package generated;
+
+import "google/protobuf/empty.proto";
+
+// Address types
+
+message SlotAddress {
+  uint32 column_index = 1;
+  uint32 row_index = 2;
+}
+
+message FullSlotAddress {
+  uint32 matrix_id = 1;
+  SlotAddress slot_address = 2;
+}
+
+message FullRowAddress {
+  uint32 matrix_id = 1;
+  uint32 row_index = 2;
+}
+
+message FullColumnAddress {
+  uint32 matrix_id = 1;
+  uint32 column_index = 2;
+}
+
+message CellAddress {
+  uint32 column_index = 1;
+  uint32 row_index = 2;
+}
+
+// Enums for trigger actions
+
+enum TriggerSlotAction {
+  TRIGGER_SLOT_ACTION_TRIGGER = 0;
+  TRIGGER_SLOT_ACTION_STOP = 1;
+  TRIGGER_SLOT_ACTION_RECORD = 2;
+}
+
+enum TriggerRowAction {
+  TRIGGER_ROW_ACTION_PLAY = 0;
+  TRIGGER_ROW_ACTION_CLEAR = 1;
+  TRIGGER_ROW_ACTION_COPY = 2;
+  TRIGGER_ROW_ACTION_CUT = 3;
+  TRIGGER_ROW_ACTION_PASTE = 4;
+  TRIGGER_ROW_ACTION_REMOVE = 5;
+  TRIGGER_ROW_ACTION_DUPLICATE = 6;
+  TRIGGER_ROW_ACTION_INSERT = 7;
+  TRIGGER_ROW_ACTION_BUILD_SCENE_FROM_PLAYING = 8;
+}
+
+enum TriggerColumnAction {
+  TRIGGER_COLUMN_ACTION_STOP = 0;
+  TRIGGER_COLUMN_ACTION_REMOVE = 1;
+  TRIGGER_COLUMN_ACTION_DUPLICATE = 2;
+  TRIGGER_COLUMN_ACTION_INSERT = 3;
+  TRIGGER_COLUMN_ACTION_PANIC = 4;
+  TRIGGER_COLUMN_ACTION_ACTIVATE = 5;
+}
+
+enum TriggerMatrixAction {
+  TRIGGER_MATRIX_ACTION_STOP_ALL_CLIPS = 0;
+  TRIGGER_MATRIX_ACTION_UNDO = 1;
+  TRIGGER_MATRIX_ACTION_REDO = 2;
+  TRIGGER_MATRIX_ACTION_BUILD_SCENE = 3;
+  TRIGGER_MATRIX_ACTION_TOGGLE_CLICK = 4;
+  TRIGGER_MATRIX_ACTION_TAP_TEMPO = 5;
+  TRIGGER_MATRIX_ACTION_PANIC = 6;
+  TRIGGER_MATRIX_ACTION_TOGGLE_MUTE = 7;
+  TRIGGER_MATRIX_ACTION_TOGGLE_SILENCE_MODE = 8;
+  TRIGGER_MATRIX_ACTION_SEQUENCER_RECORD = 9;
+  TRIGGER_MATRIX_ACTION_SEQUENCER_PLAY = 10;
+  TRIGGER_MATRIX_ACTION_SEQUENCER_STOP = 11;
+}
+
+// Trigger requests
+
+message TriggerSlotRequest {
+  FullSlotAddress slot_address = 1;
+  TriggerSlotAction action = 2;
+}
+
+message TriggerRowRequest {
+  FullRowAddress row_address = 1;
+  TriggerRowAction action = 2;
+}
+
+message TriggerColumnRequest {
+  FullColumnAddress column_address = 1;
+  TriggerColumnAction action = 2;
+}
+
+message TriggerMatrixRequest {
+  uint32 matrix_id = 1;
+  TriggerMatrixAction action = 2;
+}
+
+// Update streaming requests
+
+message GetOccasionalSlotUpdatesRequest {
+  uint32 matrix_id = 1;
+}
+
+message GetOccasionalMatrixUpdatesRequest {
+  uint32 matrix_id = 1;
+}
+
+message GetOccasionalTrackUpdatesRequest {
+  uint32 matrix_id = 1;
+}
+
+message GetOccasionalColumnUpdatesRequest {
+  uint32 matrix_id = 1;
+}
+
+message GetOccasionalRowUpdatesRequest {
+  uint32 matrix_id = 1;
+}
+
+// Slot play state (0 = unknown/unspecified sentinel for proto3)
+enum SlotPlayState {
+  SLOT_PLAY_STATE_UNKNOWN = 0;
+  SLOT_PLAY_STATE_STOPPED = 1;
+  SLOT_PLAY_STATE_IGNITED = 2;
+  SLOT_PLAY_STATE_SCHEDULED_FOR_PLAY_START = 3;
+  SLOT_PLAY_STATE_PLAYING = 4;
+  SLOT_PLAY_STATE_PAUSED = 5;
+  SLOT_PLAY_STATE_SCHEDULED_FOR_PLAY_RESTART = 6;
+  SLOT_PLAY_STATE_SCHEDULED_FOR_PLAY_STOP = 7;
+  SLOT_PLAY_STATE_SCHEDULED_FOR_RECORD_START = 8;
+  SLOT_PLAY_STATE_RECORDING = 9;
+  SLOT_PLAY_STATE_SCHEDULED_FOR_RECORD_STOP = 10;
+}
+
+// Update reply messages
+// The oneof is directly in the qualified message (not wrapped in a sub-message)
+
+message QualifiedOccasionalSlotUpdate {
+  SlotAddress slot_address = 1;
+  oneof update {
+    SlotPlayState play_state = 2;
+    string complete_persistent_data = 3;
+  }
+}
+
+message GetOccasionalSlotUpdatesReply {
+  repeated QualifiedOccasionalSlotUpdate slot_updates = 1;
+}
+
+// The oneof is directly embedded (not wrapped in OccasionalMatrixUpdate sub-message)
+message QualifiedOccasionalMatrixUpdate {
+  oneof update {
+    double master_volume = 1;
+    double pan = 2;
+    double tempo = 3;
+    string complete_persistent_data = 7;
+    HistoryState history_state = 8;
+    bool click_enabled = 9;
+    TimeSignature time_signature = 10;
+    string settings = 11;
+    bool mute = 12;
+    TrackList track_list = 13;
+    bool matrix_exists = 14;
+    bool silence_mode = 15;
+    SequencerPlayState sequencer_play_state = 16;
+    string sequencer = 17;
+    string info_event = 18;
+    string simple_mapping_container = 19;
+    LearnState learn_state = 20;
+    CellAddress active_cell = 21;
+    string control_unit_config = 22;
+    double click_volume = 23;
+    double tempo_tap_volume = 24;
+    bool has_unloaded_content = 25;
+    bool everything_has_changed = 26;
+    double play_rate = 27;
+    uint32 click_channel = 28;
+  }
+}
+
+message TimeSignature {
+  uint32 numerator = 1;
+  uint32 denominator = 2;
+}
+
+message HistoryState {
+  bool can_undo = 1;
+  bool can_redo = 2;
+}
+
+message TrackList {
+  repeated TrackInfo tracks = 1;
+}
+
+message TrackInfo {
+  string id = 1;
+  string name = 2;
+  TrackColor color = 3;
+}
+
+message TrackColor {
+  uint32 r = 1;
+  uint32 g = 2;
+  uint32 b = 3;
+}
+
+message LearnState {
+  bool active = 1;
+}
+
+message SequencerPlayState {
+  bool playing = 1;
+  bool recording = 2;
+}
+
+message GetOccasionalMatrixUpdatesReply {
+  repeated QualifiedOccasionalMatrixUpdate matrix_updates = 1;
+}
+
+message QualifiedOccasionalTrackUpdate {
+  string track_id = 1;
+  oneof update {
+    string name = 2;
+    TrackColor color = 3;
+    string input = 4;
+    bool armed = 5;
+    bool mute = 6;
+    bool solo = 7;
+    double volume = 8;
+    double pan = 9;
+  }
+}
+
+message GetOccasionalTrackUpdatesReply {
+  repeated QualifiedOccasionalTrackUpdate track_updates = 1;
+}
+
+message QualifiedOccasionalColumnUpdate {
+  uint32 column_index = 1;
+  oneof update {
+    string settings = 2;
+    string track_id = 3;
+  }
+}
+
+message GetOccasionalColumnUpdatesReply {
+  repeated QualifiedOccasionalColumnUpdate column_updates = 1;
+}
+
+message QualifiedOccasionalRowUpdate {
+  uint32 row_index = 1;
+  oneof update {
+    string data = 2;
+  }
+}
+
+message GetOccasionalRowUpdatesReply {
+  repeated QualifiedOccasionalRowUpdate row_updates = 1;
+}
+
+// The gRPC service
+service HelgoboxService {
+  // Trigger actions
+  rpc TriggerSlot(TriggerSlotRequest) returns (google.protobuf.Empty);
+  rpc TriggerRow(TriggerRowRequest) returns (google.protobuf.Empty);
+  rpc TriggerColumn(TriggerColumnRequest) returns (google.protobuf.Empty);
+  rpc TriggerMatrix(TriggerMatrixRequest) returns (google.protobuf.Empty);
+
+  // Streaming updates
+  rpc GetOccasionalSlotUpdates(GetOccasionalSlotUpdatesRequest) returns (stream GetOccasionalSlotUpdatesReply);
+  rpc GetOccasionalMatrixUpdates(GetOccasionalMatrixUpdatesRequest) returns (stream GetOccasionalMatrixUpdatesReply);
+  rpc GetOccasionalTrackUpdates(GetOccasionalTrackUpdatesRequest) returns (stream GetOccasionalTrackUpdatesReply);
+  rpc GetOccasionalColumnUpdates(GetOccasionalColumnUpdatesRequest) returns (stream GetOccasionalColumnUpdatesReply);
+  rpc GetOccasionalRowUpdates(GetOccasionalRowUpdatesRequest) returns (stream GetOccasionalRowUpdatesReply);
+}

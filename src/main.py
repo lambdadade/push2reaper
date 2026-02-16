@@ -33,6 +33,7 @@ from modes.drum import DrumMode
 from modes.device import DeviceMode
 from modes.session import SessionMode
 from modes.browser import BrowserMode
+from playtime.client import PlaytimeClient
 
 import push2_python.constants as c
 
@@ -71,6 +72,14 @@ class Push2ReaperDaemon:
         # Push 2 hardware
         self.push2 = Push2Hardware(self.event_bus, config,
                                    scale_state=self.scale_state)
+
+        # Playtime client (connects to Helgobox gRPC server)
+        pt_cfg = config.get("playtime", {})
+        self.playtime = PlaytimeClient(
+            host=pt_cfg.get("host", "127.0.0.1"),
+            port=pt_cfg.get("port", 39051),
+            event_bus=self.event_bus,
+        )
 
         # Mode system
         self._mixer_mode = MixerMode()
@@ -357,6 +366,12 @@ class Push2ReaperDaemon:
 
         self._running = True
 
+        # Connect to Playtime (optional — session mode works better with it)
+        if self.playtime.connect():
+            self.playtime.start_streaming()
+        else:
+            log.warning("Playtime not available — session mode will have no clip data")
+
         # Enter initial mode
         self._mode.enter(self)
         if self.push2.buttons:
@@ -388,6 +403,7 @@ class Push2ReaperDaemon:
         """Clean shutdown."""
         self._running = False
         log.info("Shutting down...")
+        self.playtime.stop()
         self.osc_server.stop()
         self.push2.disconnect()
         log.info("Shutdown complete")

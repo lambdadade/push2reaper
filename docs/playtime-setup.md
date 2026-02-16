@@ -1,149 +1,93 @@
-# Playtime / ReaLearn Integration Setup
+# Playtime Integration Setup
 
-This guide explains how to set up the Session mode's clip launching to work with Helgoboss Playtime in Reaper via ReaLearn.
+The Push 2 Session mode connects directly to Playtime's gRPC API for clip control and real-time state feedback. No ReaLearn or MIDI bridging is required.
 
-## Overview
-
-The Push 2 Session mode sends MIDI notes on channel 16 to trigger clip slots. Since Playtime doesn't have a direct OSC API, we use **ReaLearn** (part of Helgobox) as a bridge to translate these MIDI messages into Playtime clip actions.
+## Architecture
 
 ```
-Push 2 pads → push2reaper daemon → OSC note_on (ch 16) → Reaper vkb_midi
-    → ReaLearn mapping → Playtime slot trigger
+Push 2 pads → push2reaper daemon → gRPC (port 39051) → Playtime clip engine
+                                  ← gRPC streaming    ← Playtime state updates
 ```
-
-### Pad-to-MIDI Mapping
-
-| Pad Position | MIDI Note | Purpose |
-|-------------|-----------|---------|
-| (row, col) | row * 8 + col | Trigger clip at slot [row][col] |
-| Row 0, Col 0 | Note 0 | Top-left clip slot |
-| Row 7, Col 7 | Note 63 | Bottom-right clip slot |
-| Notes 120-127 | — | Stop clips for tracks 1-8 |
-
-All notes are sent on **MIDI channel 16** (0-indexed: channel 15).
 
 ## Prerequisites
 
-1. **Reaper** installed and running
-2. **Helgobox** extension installed (includes both ReaLearn and Playtime)
-   - Download from: https://www.helgoboss.org/projects/helgobox/
-3. **push2reaper daemon** running with OSC configured
-4. Reaper OSC control surface enabled (port 8000 receive, port 9000 send)
+1. **Reaper** running
+2. **Helgobox** extension installed (includes Playtime)
+   - Download: https://www.helgoboss.org/projects/helgobox/
+3. **Playtime** instance active in Reaper (Helgobox VST on a track with the clip matrix set up)
+4. **push2reaper daemon** running
 
-## Step 1: Add Helgobox to a Track
+## Setup
 
-1. In Reaper, create a new track (or use the Master track)
-2. Open the track's **FX chain** (click the FX button)
-3. Click **Add** and search for **"Helgobox"**
-4. Add it to the FX chain
+1. Add Helgobox as an FX on a track in Reaper
+2. Open Playtime and create your clip matrix (columns/tracks and scenes/rows)
+3. Add clips to slots as desired
+4. Start the push2reaper daemon — it will auto-connect to Playtime's gRPC server on port 39051
+5. Press the Session button on Push 2
 
-The Helgobox window should open showing ReaLearn's interface with Input, Output, and mapping configuration.
+The daemon automatically:
+- Discovers the matrix dimensions (columns and rows)
+- Fetches which slots have content
+- Streams real-time play state updates
+- Shows clip states on both the display and pad LEDs
 
-## Step 2: Access Playtime
+## Controls
 
-On Linux, Playtime's embedded UI doesn't work inside the FX window. Instead, access it via web browser:
+| Control | Action |
+|---------|--------|
+| **Pads** | Toggle play/stop for the clip at that position |
+| **Upper row 1-2** | Scene bank navigation (← →) |
+| **Upper row 3-8** | Trigger scenes (play all clips in a row) |
+| **Lower row** | Stop all clips in a column (track) |
+| **Encoders** | Track volume |
 
-1. In the Helgobox FX window, look for an **"App" button** or **globe icon** — this opens the web UI
-2. If no button is visible, try opening `http://localhost:39051` in your browser
-3. If that port doesn't respond, check Helgobox preferences for the web server port
-4. The web UI should show both ReaLearn and Playtime tabs
+## Pad Colors
 
-**Alternative**: If the web UI isn't available, you can still create ReaLearn mappings without the Playtime visual UI — the mappings themselves control Playtime's engine.
+| Color | Meaning |
+|-------|---------|
+| Dark gray | Empty slot (no clip) |
+| White | Has clip, stopped |
+| Green | Playing |
+| Red | Recording |
+| Yellow | Queued (scheduled to play/record) |
 
-## Step 3: Configure ReaLearn Input
+## Configuration
 
-ReaLearn needs to receive the MIDI notes that push2reaper sends via Reaper's virtual keyboard:
+The gRPC port can be configured in your config YAML:
 
-1. In the Helgobox/ReaLearn window, go to **Input** settings
-2. Set the input to receive from **"<FX input>"** (this captures Reaper's virtual MIDI keyboard output)
-3. The virtual keyboard MIDI (which our daemon sends via OSC `/vkb_midi/15/note/*`) will arrive as MIDI on channel 16
+```yaml
+playtime:
+  host: 127.0.0.1
+  port: 39051  # Helgobox gRPC server port
+```
 
-## Step 4: Create Clip Trigger Mappings
-
-For each clip slot you want to control, create a ReaLearn mapping:
-
-### Single Slot Mapping
-
-1. In ReaLearn's mapping list, click **Add** to create a new mapping
-2. **Source** section:
-   - Type: **MIDI note**
-   - Channel: **16**
-   - Note number: The note for this slot (e.g., 0 for row 0/col 0)
-3. **Target** section:
-   - Type: **Playtime** > **Slot management action** (or similar Playtime target)
-   - Column (track): The track index
-   - Row (scene): The scene index
-   - Action: **Trigger** (or **Record if empty**)
-
-### Batch Mapping (recommended)
-
-Instead of creating 64 individual mappings, use ReaLearn's **"Learn many"** or group mapping features:
-
-1. Create a mapping with:
-   - Source: MIDI note, Channel 16
-   - Target: Playtime slot action
-2. Use ReaLearn's parameter expressions to dynamically map note numbers to row/column:
-   - Column = `note % 8` (note modulo 8)
-   - Row = `note / 8` (note divided by 8, integer)
-
-Consult ReaLearn's documentation for the exact syntax of dynamic/computed targets.
-
-### Scene Trigger Mappings
-
-For triggering entire scenes (all clips in a row):
-
-1. **Source**: MIDI note on channel 16, specific note per scene
-2. **Target**: Playtime > **Row action** > Trigger
-
-### Stop Clip Mappings
-
-For stopping clips per track (lower row buttons in session mode):
-
-1. **Source**: MIDI notes 120-127 on channel 16
-2. **Target**: Playtime > **Column action** > Stop
-3. Map note 120 → track 1, note 121 → track 2, etc.
-
-## Step 5: Verify
-
-1. Start the push2reaper daemon
-2. Enter Session mode (press **Session** button on Push 2)
-3. Press a pad — you should see:
-   - In daemon logs: `Session pad (row,col) → clip trigger note N`
-   - In Reaper's OSC log: `/vkb_midi/15/note/N` messages
-   - In ReaLearn: The mapping should show activity (input indicator lights up)
-   - In Playtime: The corresponding clip slot should trigger
+Default port is 39051. Check Helgobox settings if your server runs on a different port (look for `realearn.ini` configuration).
 
 ## Troubleshooting
 
-### MIDI notes not reaching ReaLearn
-- Verify OSC is working: Check Reaper's OSC log for `/vkb_midi/15/note/*` messages
-- Ensure Helgobox FX is on a track that receives the virtual MIDI (try the Master track)
-- Check ReaLearn input is set to `<FX input>`
+### "Playtime not available" in logs
+- Verify Helgobox is loaded as an FX in Reaper
+- Check the gRPC port: `ss -tlnp | grep 39051`
+- The Helgobox server starts when the FX is loaded; make sure Reaper is running first
 
 ### Clips don't trigger
-- Verify the ReaLearn mapping target is set to a Playtime action (not a generic MIDI target)
-- Check that Playtime has clips loaded in the slots you're trying to trigger
-- Ensure column/row indices in the mapping match the clip matrix layout
+- Verify the gRPC connection with: `python -c "from playtime.client import PlaytimeClient; c = PlaytimeClient(); print(c.connect())"`
+- Check that Playtime has clips in the slots you're triggering
+- The daemon log shows `Triggered slot [col, row]` for each pad press
 
-### Web UI not loading
-- Try different ports: `http://localhost:39051`, `http://localhost:39052`
-- Check if Helgobox's web server is enabled in its settings
-- On Linux, the embedded UI won't work — the browser approach is the only option
+### Display shows empty grid
+- Session mode needs Playtime connected to show clip states
+- Without Playtime, all slots show as empty (dark gray)
+- Check daemon logs for "Connected to Playtime gRPC" message
 
-## Alternative Approach: Direct OSC to ReaLearn
+## Technical Details
 
-Instead of going through Reaper's virtual keyboard, ReaLearn can listen on its own OSC port. This may be more reliable:
+The integration uses a reconstructed protobuf schema (`src/playtime/proto/helgobox.proto`) based on analysis of the Helgobox source code. The gRPC service is `generated.HelgoboxService` running on HTTP/2.
 
-1. In ReaLearn settings, enable the **OSC input device** with a custom port (e.g., 10000)
-2. Modify the push2reaper session mode to send OSC directly to ReaLearn's port instead of using `vkb_midi`
-3. This requires changes to `src/modes/session.py` and `src/reaper/osc_client.py`
-
-This approach is not yet implemented but is a planned improvement.
-
-## Clip State Feedback
-
-Currently, the session mode maintains an internal `_clip_states` grid but doesn't receive real-time clip state updates from Playtime. Future work:
-
-- ReaLearn can send feedback when clip states change
-- This feedback could update `_clip_states` and pad colors
-- Requires configuring ReaLearn feedback mappings (Playtime state → MIDI/OSC output)
+Key gRPC methods used:
+- `TriggerSlot` — play/stop individual clips
+- `TriggerRow` — trigger scenes
+- `TriggerColumn` — stop all clips in a column
+- `TriggerMatrix` — stop all clips
+- `GetOccasionalSlotUpdates` — stream real-time clip state changes
+- `GetOccasionalMatrixUpdates` — stream matrix state (tempo, track list, persistent data)

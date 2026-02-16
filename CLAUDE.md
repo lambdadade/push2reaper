@@ -66,7 +66,9 @@ Display ← Mode.render() ← PIL Image (960x160)                    OSC Client 
 | `modes/scale.py` | Scale/root/layout selection overlay |
 | `modes/drum.py` | Drum pads (4x4) + step sequencer grid |
 | `modes/device.py` | FX parameter control via encoders |
-| `modes/session.py` | Clip launcher for Playtime (via MIDI on ch 16) |
+| `modes/session.py` | Clip launcher for Playtime (via gRPC) |
+| `playtime/client.py` | `PlaytimeClient` — gRPC client for Playtime clip engine |
+| `playtime/proto/helgobox.proto` | Reconstructed protobuf schema for Helgobox gRPC API |
 | `modes/browser.py` | FX browser trigger via Reaper actions |
 | `modes/send.py` | Standalone send control (currently unused, sends integrated into mixer) |
 | `ui/screens.py` | `MixerScreen` — 8 channel strips + transport bar |
@@ -153,7 +155,7 @@ cd push2reaper && source venv/bin/activate && python src/main.py
 
 ## Current State / Known Limitations
 
-- **Session mode**: Sends MIDI notes on channel 16 for Playtime integration. Requires ReaLearn as a bridge to map MIDI → Playtime clip slots. See `docs/playtime-setup.md`.
+- **Session mode**: Connects directly to Playtime's gRPC API (port 39051) for clip control and real-time state feedback. No ReaLearn/MIDI bridging needed. Requires Helgobox with Playtime running in Reaper.
 - **Browser mode**: Limited to opening Reaper windows via action IDs. No deep browser navigation (would need ReaScript).
 - **Step sequencer**: Basic step toggle grid in drum mode. No actual MIDI item editing (would need ReaScript/reapy).
 - **Send mode**: Integrated into mixer mode as the 3rd encoder mode. The standalone `modes/send.py` exists but isn't used.
@@ -169,3 +171,5 @@ cd push2reaper && source venv/bin/activate && python src/main.py
 - `PyYAML` — Config parsing
 - `python-dotenv` — Environment variable loading
 - `numpy` — BGR565 frame conversion
+- `grpcio` — gRPC client for Playtime integration
+- `protobuf` — Protocol Buffer serialization for gRPC
