@@ -269,6 +269,22 @@ Push 2 (USB)          push2reaper daemon              Reaper DAW
 - Check that the OSC device port in Reaper matches `listen_port` (9000)
 - Verify tracks exist in the Reaper project
 
+## Legal Notices
+
+### Helgobox/Playtime Licensing
+
+**The Session mode requires a valid Helgobox/Playtime license.** This is a 
+third-party tool and is not affiliated with Helgoboss. See 
+https://www.helgoboss.org/ for Playtime licensing information.
+
+### Third-Party Integration
+
+The Playtime gRPC integration uses a reverse-engineered API schema for 
+interoperability purposes. See [LEGAL.md](LEGAL.md) or [NOTICE](NOTICE) 
+for details.
+
+---
+
 ## License
 
-MIT
+MIT License - See [LICENSE](LICENSE) file for details.
